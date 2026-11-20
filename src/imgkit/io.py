@@ -4,6 +4,7 @@ import imageio.v3 as iio
 from natsort import natsorted
 import numpy as np
 import tifffile
+from tqdm import tqdm
 
 
 def _read_single_image(path: str) -> np.ndarray:
@@ -55,7 +56,7 @@ def load_image_data(
 
     if file_extension.lower().endswith((".tif", ".tiff")):
       return tifffile.imread(file_list)
-    return np.stack([_read_single_image(f) for f in file_list], axis=0)
+    return np.stack([_read_single_image(f) for f in tqdm(file_list, desc="Loading images")], axis=0)
 
   return _read_single_image(path)
 
@@ -99,7 +100,7 @@ def save_image_data(
     data: np.ndarray,
     output_path: str,
     file_extension: str = ".tif",
-    as_sequence: bool = False,
+    as_sequence: bool = True,
 ) -> None:
   """Save a 2D image or 3D volume to disk as a single file or slice sequence.
 
@@ -115,7 +116,7 @@ def save_image_data(
         Defaults to '.tif'.
       as_sequence: If True and data is 3D, saves individual 2D slices inside
         output_path named 'slice_0000.ext' through 'slice_nnnn.ext'.
-        Defaults to False.
+        Defaults to True.
 
   Raises:
       ValueError: If data is not 2D or 3D, if a 3D volume is saved as a
@@ -138,7 +139,7 @@ def save_image_data(
     num_slices = data.shape[0]
     pad_width = max(4, len(str(num_slices)))
 
-    for idx in range(num_slices):
+    for idx in tqdm(range(num_slices), desc="Saving slices"):
       filename = f"slice_{idx:0{pad_width}d}{ext}"
       slice_path = os.path.join(output_path, filename)
       _write_image(slice_path, data[idx])
